@@ -75,7 +75,7 @@ public class Autnum extends BaseModel {
     /**
      * status
      */
-    private List<String> status = new ArrayList<String>();
+    private List<String> status;
     /**
      * sub entities
      */
@@ -96,6 +96,11 @@ public class Autnum extends BaseModel {
      * events
      */
     private List<Event> events;
+    
+    @Override
+    public ModelType getObjectType() {
+        return ModelType.AUTNUM;
+    }
 
     /**
      * add a status string to status list

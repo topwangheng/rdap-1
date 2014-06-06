@@ -73,7 +73,7 @@ public class RestResponseUtil {
     /**
      * init ErrorMessages list
      */
-    private static void initErrorMessages() {
+    public static void initErrorMessages() {
         errorMessageMap = errorMessageService.getAllErrorMessageMap();
     }
 
@@ -116,6 +116,28 @@ public class RestResponseUtil {
      */
     public static ResponseEntity<ErrorMessage> createResponse400() {
         return createCommonErrorResponse(HttpStatus.BAD_REQUEST);
+    }
+    
+    /**
+     * create response with HTTP status code 401.
+     * 
+     * @param response
+     *            model object
+     * @return ResponseEntity
+     */
+    public static ResponseEntity<ErrorMessage> createResponse401() {
+        return createCommonErrorResponse(HttpStatus.UNAUTHORIZED);
+    }
+    
+    /**
+     * create response with HTTP status code 403.
+     * 
+     * @param response
+     *            model object
+     * @return ResponseEntity
+     */
+    public static ResponseEntity<ErrorMessage> createResponse403() {
+        return createCommonErrorResponse(HttpStatus.FORBIDDEN);
     }
 
     /**
@@ -166,6 +188,17 @@ public class RestResponseUtil {
      */
     public static ResponseEntity<ErrorMessage> createResponse500() {
         return createCommonErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * create response with HTTP status code 422
+     * 
+     * @param response
+     *            model object
+     * @return ResponseEntity
+     */
+    public static ResponseEntity<ErrorMessage> createResponse422() {
+        return createCommonErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     /**

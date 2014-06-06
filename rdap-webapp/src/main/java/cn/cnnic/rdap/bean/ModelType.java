@@ -37,24 +37,44 @@ package cn.cnnic.rdap.bean;
  * 
  */
 public enum ModelType {
-    DOMAIN("domain"), ENTITY("entity"), NAMESERVER("nameServer"), AUTNUM(
-            "autnum"), HELP("help"), IP("ip"), Event("event"), Link("link"), PublicId(
-            "publicId"), Remark("remark"), Notice("notice");
     /**
-     * name of model type
+     * model type.
+     */
+    DOMAIN("domain"), ENTITY("entity"), NAMESERVER("nameServer"), AUTNUM(
+            "autnum"),
+    /**
+     * help ip event link publicId type.
+     */
+    HELP("help"), IP("ip"), EVENT("event"), LINK("link"), PUBLICID("publicId"),
+    /**
+     * remark notice secureDns type.
+     */
+    REMARK("remark"), NOTICE("notice"), SECUREDNS("secureDns"),
+    /**
+     * ds type.
+     */
+    DSDATA("dsData"), KEYDATA("keyData");
+    /**
+     * name of model type.
      */
     private String name;
 
+    /**
+     * constructor.
+     * 
+     * @param name
+     *            name.
+     */
     private ModelType(String name) {
         this.name = name;
     }
 
     /**
-     * get model type be name
+     * get model type be name.
      * 
      * @param name
-     *            :model type name
-     * @return model type name
+     *            name.
+     * @return model ModelType.
      */
     public static ModelType getModelType(String name) {
         ModelType[] modelTypes = ModelType.values();
@@ -66,10 +86,21 @@ public enum ModelType {
         return null;
     }
 
+    /**
+     * get type name.
+     * 
+     * @return type name.
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * set type name.
+     * 
+     * @param name
+     *            type name.
+     */
     public void setName(String name) {
         this.name = name;
     }

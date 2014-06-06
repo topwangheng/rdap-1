@@ -45,7 +45,7 @@ import cn.cnnic.rdap.BaseTest;
 import cn.cnnic.rdap.bean.Domain;
 
 /**
- * Test for RestResponseUtil
+ * Test for RestResponseUtil.
  * 
  * @author jiashuo
  * 
@@ -54,7 +54,7 @@ import cn.cnnic.rdap.bean.Domain;
 public class RestResponseUtilTest extends BaseTest {
 
     /**
-     * test create ResponseEntity with HTTP code 200
+     * test create ResponseEntity with HTTP code 200.
      */
     @Test
     public void testCreateResponse200() {
@@ -69,7 +69,7 @@ public class RestResponseUtilTest extends BaseTest {
     }
 
     /**
-     * test create ResponseEntity with HTTP code 400
+     * test create ResponseEntity with HTTP code 400.
      */
     @Test
     public void testCreateResponse400() {
@@ -79,7 +79,27 @@ public class RestResponseUtilTest extends BaseTest {
     }
 
     /**
-     * test create ResponseEntity with HTTP code 404
+     * test create ResponseEntity with HTTP code 401.
+     */
+    @Test
+    public void testCreateResponse401() {
+        ResponseEntity result = RestResponseUtil.createResponse401();
+        Assert.notNull(result);
+        assertEquals(result.getStatusCode(), HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * test create ResponseEntity with HTTP code 403.
+     */
+    @Test
+    public void testCreateResponse403() {
+        ResponseEntity result = RestResponseUtil.createResponse403();
+        Assert.notNull(result);
+        assertEquals(result.getStatusCode(), HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * test create ResponseEntity with HTTP code 404.
      */
     @Test
     public void testCreateResponse404() {
@@ -89,7 +109,7 @@ public class RestResponseUtilTest extends BaseTest {
     }
 
     /**
-     * test create ResponseEntity with HTTP code 405
+     * test create ResponseEntity with HTTP code 405.
      */
     @Test
     public void testCreateResponse405() {
@@ -102,7 +122,7 @@ public class RestResponseUtilTest extends BaseTest {
     }
 
     /**
-     * test create ResponseEntity with HTTP code 415
+     * test create ResponseEntity with HTTP code 415.
      */
     @Test
     public void testCreateResponse415() {
@@ -112,12 +132,22 @@ public class RestResponseUtilTest extends BaseTest {
     }
 
     /**
-     * test create ResponseEntity with HTTP code 500
+     * test create ResponseEntity with HTTP code 500.
      */
     @Test
     public void testCreateResponse500() {
         ResponseEntity result = RestResponseUtil.createResponse500();
         Assert.notNull(result);
         assertEquals(result.getStatusCode(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /**
+     * test create ResponseEntity with HTTP code 422.
+     */
+    @Test
+    public void testCreateResponse422() {
+        ResponseEntity result = RestResponseUtil.createResponse422();
+        Assert.notNull(result);
+        assertEquals(result.getStatusCode(), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }

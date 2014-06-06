@@ -30,6 +30,7 @@
  */
 package cn.cnnic.rdap;
 
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
@@ -37,6 +38,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.transaction.annotation.Transactional;
+
+import cn.cnnic.rdap.bean.Principal;
+import cn.cnnic.rdap.controller.support.PrincipalHolder;
 
 import com.github.springtestdbunit.DbUnitTestExecutionListener;
 
@@ -50,11 +54,18 @@ import com.github.springtestdbunit.DbUnitTestExecutionListener;
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(locations = {
-		"/spring/spring-applicationContext-test.xml",
-		"/spring/spring-servlet.xml" })
+        "/spring/spring-applicationContext-test.xml",
+        "/spring/spring-servlet.xml" })
 @TestExecutionListeners({ DependencyInjectionTestExecutionListener.class,
-		DbUnitTestExecutionListener.class })
+        DbUnitTestExecutionListener.class })
 @Transactional
 public abstract class BaseTest {
+    /**
+     * set principal.
+     */
+    @BeforeClass
+    public static void setPrincipal() {
+        PrincipalHolder.setPrincipal(Principal.getAnonymousPrincipal());
+    }
 
 }

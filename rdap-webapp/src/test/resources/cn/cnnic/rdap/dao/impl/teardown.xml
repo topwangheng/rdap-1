@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dataset>
-	<RDAP_AUTNUM_STATUS />
-	<REL_EVENT_REGISTRATION />
+	<RDAP_IDENTITY_ACL />
 </dataset>
