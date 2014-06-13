@@ -29,72 +29,32 @@
  * DAMAGE.
  */
 
-package cn.cnnic.rdap.bean;
+package cn.cnnic.rdap.dao.impl;
+
+import cn.cnnic.rdap.BaseTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import cn.cnnic.rdap.dao.IdentityCheckDao;
+import static org.junit.Assert.*;
+import org.junit.Test;
+
+import cn.cnnic.rdap.bean.User;
+import com.github.springtestdbunit.annotation.DatabaseSetup;
 
 /**
  *
  * @author wang
  */
-public class User extends BaseModel {
+public class IndentityCheckDaoTest  extends BaseTest{
+    	@Autowired
+        private IdentityCheckDao idcDao;
+        /**
+        * test for IdentityCheckDao.
+        */
+        @Test
+        @DatabaseSetup("identity.xml")
+        public void testIdentityCheckDao(){
+            User use=idcDao.checkUserId("20");
+            assertNotNull(use);   
+        }
     
-
-    public enum UserType{
-        
-    Anonymous("anonymous"),Cerfications("cerfications");
-    private final String userType;
-    
-    private UserType(String userType ){
-        
-        this.userType = userType;
-        
-    };
-    
-    };
-    
-    private UserType userType;
-    
-    public UserType getUserType(){
-        
-           return userType;
-           
-    }
-    
-    public void setUserType(UserType userType){
-        
-           this.userType = userType;
-           
-    }
-    
-    private long userId;
-    
-    public long getUserId(){
-        
-           return userId;
-           
-    }
-    
-    public void setUserId(long userId){
-        
-           this.userId = userId;
-           
-    }
-    
-    private String userPwd;
-    
-    public void setUserPwd(String userPwd){
-        
-        this.userPwd = userPwd;
-        
-    }
-    
-    public String getUserPwd(){
-        return userPwd;
-    }
-    
-    public User(){
-        
-           userType = UserType.Anonymous;
-           userId = 0;
-           userPwd = "";
-    }  
 }

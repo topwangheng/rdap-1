@@ -31,70 +31,29 @@
 
 package cn.cnnic.rdap.bean;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
 /**
- *
+ *test User
  * @author wang
  */
-public class User extends BaseModel {
+public class UserTest {
     
-
-    public enum UserType{
-        
-    Anonymous("anonymous"),Cerfications("cerfications");
-    private final String userType;
-    
-    private UserType(String userType ){
-        
-        this.userType = userType;
-        
-    };
-    
-    };
-    
-    private UserType userType;
-    
-    public UserType getUserType(){
-        
-           return userType;
-           
-    }
-    
-    public void setUserType(UserType userType){
-        
-           this.userType = userType;
-           
-    }
-    
-    private long userId;
-    
-    public long getUserId(){
-        
-           return userId;
-           
-    }
-    
-    public void setUserId(long userId){
-        
-           this.userId = userId;
-           
-    }
-    
-    private String userPwd;
-    
-    public void setUserPwd(String userPwd){
-        
-        this.userPwd = userPwd;
-        
-    }
-    
-    public String getUserPwd(){
-        return userPwd;
-    }
-    
-    public User(){
-        
-           userType = UserType.Anonymous;
-           userId = 0;
-           userPwd = "";
-    }  
+    @Test  
+   public void testUser() {  
+    /**
+     * test testUser.
+     */       
+       User  use = new User();
+       use.setUserId(12345678911L);
+       use.setUserPwd("098F6BCD4621D373CADE4E832627B4F6");
+       use.setUserType(User.UserType.Anonymous);
+       assertEquals(12345678911L,use.getUserId());
+       assertEquals("098F6BCD4621D373CADE4E832627B4F6",use.getUserPwd());
+       assertEquals(User.UserType.Anonymous,use.getUserType());
+   } 
 }
