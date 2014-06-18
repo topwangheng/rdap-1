@@ -35,11 +35,15 @@ import org.springframework.stereotype.Service;
 
 import cn.cnnic.rdap.bean.Autnum;
 import cn.cnnic.rdap.bean.Domain;
+import cn.cnnic.rdap.bean.Entity;
 import cn.cnnic.rdap.bean.Nameserver;
+import cn.cnnic.rdap.bean.Network;
 import cn.cnnic.rdap.bean.QueryParam;
+import cn.cnnic.rdap.dao.QueryDao;
 import cn.cnnic.rdap.dao.impl.AutnumQueryDaoImpl;
 import cn.cnnic.rdap.dao.impl.DomainQueryDaoImpl;
 import cn.cnnic.rdap.dao.impl.NameserverQueryDaoImpl;
+import cn.cnnic.rdap.dao.impl.NetworkQueryDaoImpl;
 import cn.cnnic.rdap.service.QueryService;
 import cn.cnnic.rdap.service.RdapConformanceService;
 
@@ -73,6 +77,18 @@ public class QueryServiceImpl implements QueryService {
      */
     @Autowired
     private NameserverQueryDaoImpl nameserverQueryDao;
+    
+    /**
+     * ip DAO
+     */
+    @Autowired
+    private NetworkQueryDaoImpl ipQueryDao;
+
+    /**
+     * entityQueryDao.
+     */
+    @Autowired
+    private QueryDao<Entity> entityQueryDao;
 
 	/**
 	 * query domain by domain name
@@ -86,9 +102,20 @@ public class QueryServiceImpl implements QueryService {
 	public Autnum queryAutnum(QueryParam queryParam) {
 		return autnumQueryDao.query(queryParam);
 	}
-	
+
 	@Override
 	public Nameserver queryNameserver(QueryParam queryParam) {
 	    return nameserverQueryDao.query(queryParam);
 	}
+
+    @Override
+    public Entity queryEntity(QueryParam queryParam) {
+        return entityQueryDao.query(queryParam);
+    }
+
+	@Override
+    public Network queryIp(QueryParam queryParam) {
+        return ipQueryDao.query(queryParam);
+    }
+
 }

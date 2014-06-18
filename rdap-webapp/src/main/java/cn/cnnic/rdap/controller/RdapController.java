@@ -48,6 +48,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import cn.cnnic.rdap.bean.Autnum;
 import cn.cnnic.rdap.bean.Domain;
 import cn.cnnic.rdap.bean.DomainSearch;
+import cn.cnnic.rdap.bean.Entity;
+import cn.cnnic.rdap.bean.EntitySearch;
+import cn.cnnic.rdap.bean.Nameserver;
+import cn.cnnic.rdap.bean.NameserverQueryParam;
+import cn.cnnic.rdap.bean.NameserverSearch;
+import cn.cnnic.rdap.bean.Network;
+import cn.cnnic.rdap.bean.Network.IpVersion;
+import cn.cnnic.rdap.bean.QueryParam;
 import cn.cnnic.rdap.common.util.AutnumValidator;
 import cn.cnnic.rdap.common.util.DomainUtil;
 import cn.cnnic.rdap.common.util.IpUtil;
@@ -58,9 +66,6 @@ import cn.cnnic.rdap.service.AccessControlManager;
 import cn.cnnic.rdap.service.QueryService;
 import cn.cnnic.rdap.service.SearchService;
 import cn.cnnic.rdap.service.impl.ResponseDecorator;
-import cn.cnnic.rdap.bean.Nameserver;
-import cn.cnnic.rdap.bean.NameserverSearch;
-import cn.cnnic.rdap.bean.NameserverQueryParam;
 
 /**
  * controller for query and search.All methods return message in JSON format.
@@ -102,6 +107,74 @@ public class RdapController {
      */
     @Autowired
     private AccessControlManager accessControlManager;
+
+    /**
+     * query entity.
+     *
+     * @param handle
+     *            entity handle.
+     * @param request
+     *            HttpServletRequest.
+     * @param response
+     *            HttpServletResponse
+     * @return JSON formated result,with HTTP code.
+     */
+    @RequestMapping(value = "/entity/{handle}", method = RequestMethod.GET)
+    public ResponseEntity queryEntity(@PathVariable String handle,
+            HttpServletRequest request, HttpServletResponse response) {
+        LOGGER.info("query entity,handle:" + handle);
+        if (!StringUtil.isValidEntityHandleOrName(handle)) {
+            return RestResponseUtil.createResponse400();
+        }
+        Entity result = queryService.queryEntity(queryParser
+                .parseQueryParam(handle));
+        if (null != result) {
+            if (!accessControlManager.hasPermission(result)) {
+                return RestResponseUtil.createResponse403();
+            }
+            responseDecorator.decorateResponse(result);
+            return RestResponseUtil.createResponse200(result);
+        }
+        return RestResponseUtil.createResponse404();
+    }
+    
+    /**
+     * search entity by handle or name.
+     * @param fn fn.
+     * @param handle handle.
+     * @param request request.
+     * @return ResponseEntity.
+     */
+    @RequestMapping(value = "/entities", method = RequestMethod.GET)
+    public ResponseEntity searchEntity(@RequestParam(required = false) String fn,
+            @RequestParam(required = false) String handle,
+            HttpServletRequest request){
+        LOGGER.info("search entities.fn:{},handle:{}",fn,handle);
+        final String fnParamName = "fn";
+        final String handleParamName = "handle";
+        String paramName = queryParser.getFirstParameter(request,
+                new String[]{fnParamName,handleParamName});
+        if (StringUtils.isBlank(paramName)) {
+            return RestResponseUtil.createResponse400();
+        }
+        String paramValue = queryParser.getParameter(request, paramName);
+        if (!StringUtil.isValidEntityHandleOrName(paramValue)) {
+            return RestResponseUtil.createResponse400();
+        }
+        QueryParam queryParam = queryParser
+                .parseEntityQueryParam(paramValue, paramName);
+        LOGGER.info("generate queryParam:{}",queryParam);
+        EntitySearch result = searchService.searchEntity(queryParam);
+        if (null != result) {
+            if (!accessControlManager.hasPermission(result)) {
+                return RestResponseUtil.createResponse403();
+            }
+            responseDecorator.decorateResponse(result);
+            return RestResponseUtil.createResponse200(result);
+        }
+        
+        return RestResponseUtil.createResponse404();
+    }
 
     /**
      * query autnum.
@@ -218,16 +291,6 @@ public class RdapController {
             return RestResponseUtil.createResponse200(domainSearch);
         }
         return RestResponseUtil.createResponse404();
-    }
-
-    /**
-     * other invalid query uri will response 400 error.
-     * 
-     * @return JSON formated result,with HTTP code.
-     */
-    @RequestMapping(value = "/**")
-    public ResponseEntity error400() {
-        return RestResponseUtil.createResponse400();
     }
 
     /**
@@ -353,26 +416,98 @@ public class RdapController {
     }
 
     /**
-     * query ip by ipAddress.
+     * query ip by mask.
      * 
      * @param ipAddr
-     *            represents information regarding DNS name servers used in both
-     *            forward and reverse DNS. RIRs and some DNRs register or expose
-     *            nameserver information as an attribute of a domain name, while
-     *            other DNRs model nameservers as "first class objects".
+     *            the query ip
+     * @param mask
+     *            the ip mask
      * @return JSON formatted result,with HTTP code.
+     */
+    @RequestMapping(value = { "/ip/{ipAddr}/{mask}" },
+            method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity queryIpWithMask(@PathVariable String ipAddr,
+            @PathVariable String mask) {
+        ResponseEntity res = queryIpAddress(ipAddr, mask);
+        return res;
+    }
+
+    /**
+     * query ip by address.
+     * 
+     * @param ipAddr
+     *            the query ip
+     * @return ResponseEntity
      */
     @RequestMapping(value = { "/ip/{ipAddr}" }, method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity queryIp(@PathVariable String ipAddr) {
+        ResponseEntity res = queryIpAddress(ipAddr, "");
+        return res;
+    }
 
+    /**
+     * invoked by upper functions.
+     * 
+     * @param ipAddr
+     *            the query ip
+     * @param ipMask
+     *            the ip mask,can be 0.
+     * @return
+     */
+    public ResponseEntity queryIpAddress(String ipAddr, String ipMask) {
         String strIp = ipAddr;
-        String strMask = "";
-        int pos = ipAddr.indexOf("/");
-        if (-1 != pos) {
-            strIp = ipAddr.substring(0, pos);
-            strMask = ipAddr.substring(pos + 1, ipAddr.length());
+        String strMask = ipMask;
+        final long maskHighV6 = 128;
+        final long maskLow = 0;
+        final long maskHighV4 = 32;
+        long numMask = 0;
+        if (!StringUtils.isNumeric(ipMask)) {
+            return RestResponseUtil.createResponse400();
+        }
+        if (StringUtils.isNotBlank(ipMask)) {
+            numMask = StringUtil.parseUnsignedLong(strMask);
+        }
+        IpVersion ipVersion = IpVersion.V6;
+        boolean isV4 = IpUtil.isIpV4StrWholeValid(strIp);
+        boolean isV6 = IpUtil.isIpV6StrValid(strIp);
+
+        if (!isV4 && !isV6) {
+            return RestResponseUtil.createResponse400();
+        }
+        if (isV4) {
+            if (numMask > maskHighV4 || numMask < maskLow) {
+                return RestResponseUtil.createResponse400();
+            }
+            ipVersion = IpVersion.V4;
+        } else if (isV6) {
+            if (numMask > maskHighV6 || numMask < maskLow) {
+                return RestResponseUtil.createResponse400();
+            }
+            ipVersion = IpVersion.V6;
+        }
+        StringUtils.lowerCase(strIp);
+        // query ip
+        Network ip = queryService.queryIp(queryParser.parseIpQueryParam(strIp,
+                numMask, ipVersion));
+        if (null != ip) {
+            if (!accessControlManager.hasPermission(ip)) {
+                return RestResponseUtil.createResponse403();
+            }
+            responseDecorator.decorateResponse(ip);
+            return RestResponseUtil.createResponse200(ip);
         }
         return RestResponseUtil.createResponse404();
+    }
+    
+    /**
+     * other invalid query uri will response 400 error.
+     * 
+     * @return JSON formated result,with HTTP code.
+     */
+    @RequestMapping(value = "/**")
+    public ResponseEntity error400() {
+        return RestResponseUtil.createResponse400();
     }
 }

@@ -30,92 +30,66 @@
  */
 package cn.cnnic.rdap.bean;
 
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 /**
- * IPAddress registrations found in RIRs and is the expected response for the
- * "/nameserver/" query as defined by [I-D.ietf-weirds-rdap-query].
+ * entity query parameter bean.
  * 
- * @author weijunkai
+ * @author jiashuo
  * 
  */
-public class IPAddress extends BaseModel {
-
+public class EntityQueryParam extends QueryParam {
     /**
-     * the V4 IP address.
-     */
-    private List<String> ipAddressV4;
-
-    /**
-     * the V6 IP address.
-     */
-    private List<String> ipAddressV6;
-
-    /**
-     * an flag identity if the ipAddress existed.
-     */
-    @JsonIgnore
-    private boolean ipExisted;
-
-    /**
-     * get ip Address.
+     * default constructor.
      * 
-     * @return ipAddress.
+     * @param q
+     *            query string.
      */
-    public List<String> getAddressV4() {
-        return ipAddressV4;
+    public EntityQueryParam(String q) {
+        super(q);
     }
 
     /**
-     * set ip Address V4.
+     * constructor.
      * 
-     * @param ipAddressV4
-     *            set the ipAddress V4.
+     * @param q
+     *            query string.
+     * @param searchParamName
+     *            searchParamName.
      */
-    @JsonProperty("v4")
-    public void setAddressV4(List<String> ipAddressV4) {
-        this.ipAddressV4 = ipAddressV4;
+    public EntityQueryParam(String q, String searchParamName) {
+        super(q);
+        this.searchParamName = searchParamName;
     }
 
     /**
-     * get lowAddress.
-     * 
-     * @return lowAddress.
+     * searchParamName.
      */
-    public List<String> getAddressV6() {
-        return ipAddressV6;
+    private String searchParamName;
+
+    /**
+     * get searchParamName.
+     * 
+     * @return searchParamName.
+     */
+    public String getSearchParamName() {
+        return searchParamName;
     }
 
     /**
-     * set ipAddressV6.
+     * set searchParamName.
      * 
-     * @param ipAddressV6
-     *            ipAddressV6.
+     * @param searchParamName
+     *            searchParamName.
      */
-    @JsonProperty("v6")
-    public void setAddressV6(List<String> ipAddressV6) {
-        this.ipAddressV6 = ipAddressV6;
+    public void setSearchParamName(String searchParamName) {
+        this.searchParamName = searchParamName;
     }
 
-    /**
-     * get ipExisted.
-     * 
-     * @return ipExisted.
-     */
-    public boolean getIpExisted() {
-        return ipExisted;
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this).append(searchParamName).append(getQ())
+                .toString();
     }
 
-    /**
-     * set ipExisted.
-     * 
-     * @param ipExisted
-     *            for nameserver.
-     */
-    public void setIpExisted(boolean ipExisted) {
-        this.ipExisted = ipExisted;
-    }
 }

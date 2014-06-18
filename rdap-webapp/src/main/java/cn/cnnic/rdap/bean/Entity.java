@@ -34,24 +34,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 
 /**
  * represents the information of organizations, corporations, governments,
  * non-profits, clubs, individual persons, and informal groups of people.
- *
+ * 
  * @author jiashuo
- *
+ * 
  */
 @JsonPropertyOrder({ "rdapConformance", "notices", "handle", "vcardArray",
         "roles", "publicIds", "entities", "remarks", "links", "events",
-        "asEventActor", "status", "port43", "networks", "autnums", "lang" })
+        "asEventActor", "status", "port43", "networks", "autnums",
+        "resultsTruncated", "lang" })
 public class Entity extends BaseModel {
     /**
      * a JSON vCard with the entity's contact information.
      */
+    @JsonRawValue
     private String vcardArray;
     /**
      * an array of strings, each signifying the relationship an object would
@@ -92,6 +96,13 @@ public class Entity extends BaseModel {
      * port43.
      */
     private String port43;
+
+    /**
+     * 'resultsTruncated' used where a single object has been returned and data
+     * in that object has been truncated.
+     */
+    private Boolean resultsTruncated = null;
+
     /**
      * an array of IP network objects.
      */
@@ -142,9 +153,14 @@ public class Entity extends BaseModel {
     @JsonIgnore
     private String url;
 
+    @Override
+    public ModelType getObjectType() {
+        return ModelType.ENTITY;
+    }
+
     /**
      * add a status string to status list.
-     *
+     * 
      * @param statusStr
      *            statusStr.
      */
@@ -152,35 +168,43 @@ public class Entity extends BaseModel {
         if (StringUtils.isBlank(statusStr)) {
             return;
         }
+        statusStr = StringUtils.trim(statusStr);
         if (null == this.status) {
             this.status = new ArrayList<String>();
         }
-        if(!this.status.contains(statusStr)){
+        if (!this.status.contains(statusStr)) {
             this.status.add(statusStr);
         }
     }
 
     /**
-     * add a status string to status list.
-     *
+     * add a status string to role list.
+     * 
      * @param roleStr
-     *            statusStr.
+     *            roleStr.
      */
     public void addRole(String roleStr) {
         if (StringUtils.isBlank(roleStr)) {
             return;
         }
+        roleStr = StringUtils.trim(roleStr);
         if (null == this.roles) {
             this.roles = new ArrayList<String>();
         }
-        if(!this.roles.contains(roleStr)){
+        if (!this.roles.contains(roleStr)) {
             this.roles.add(roleStr);
         }
     }
 
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this).append(getId()).append(getHandle())
+                .toString();
+    }
+
     /**
      * get vcardArray.
-     *
+     * 
      * @return vcardArray.
      */
     public String getVcardArray() {
@@ -189,7 +213,7 @@ public class Entity extends BaseModel {
 
     /**
      * set vcardArray.
-     *
+     * 
      * @param vcardArray
      *            vcardArray.
      */
@@ -199,7 +223,7 @@ public class Entity extends BaseModel {
 
     /**
      * get roles.
-     *
+     * 
      * @return roles.
      */
     public List<String> getRoles() {
@@ -208,7 +232,7 @@ public class Entity extends BaseModel {
 
     /**
      * set roles.
-     *
+     * 
      * @param roles
      *            roles.
      */
@@ -218,7 +242,7 @@ public class Entity extends BaseModel {
 
     /**
      * get publicIds.
-     *
+     * 
      * @return publicIds.
      */
     public List<PublicId> getPublicIds() {
@@ -227,7 +251,7 @@ public class Entity extends BaseModel {
 
     /**
      * set publicIds.
-     *
+     * 
      * @param publicIds
      *            publicIds.
      */
@@ -237,7 +261,7 @@ public class Entity extends BaseModel {
 
     /**
      * get remarks.
-     *
+     * 
      * @return remarks.
      */
     public List<Remark> getRemarks() {
@@ -246,7 +270,7 @@ public class Entity extends BaseModel {
 
     /**
      * set remarks.
-     *
+     * 
      * @param remarks
      *            remarks.
      */
@@ -256,7 +280,7 @@ public class Entity extends BaseModel {
 
     /**
      * get links.
-     *
+     * 
      * @return links.
      */
     public List<Link> getLinks() {
@@ -265,7 +289,7 @@ public class Entity extends BaseModel {
 
     /**
      * set links.
-     *
+     * 
      * @param links
      *            links.
      */
@@ -275,7 +299,7 @@ public class Entity extends BaseModel {
 
     /**
      * get events.
-     *
+     * 
      * @return events.
      */
     public List<Event> getEvents() {
@@ -284,7 +308,7 @@ public class Entity extends BaseModel {
 
     /**
      * set events.
-     *
+     * 
      * @param events
      *            events.
      */
@@ -294,7 +318,7 @@ public class Entity extends BaseModel {
 
     /**
      * get status.
-     *
+     * 
      * @return status.
      */
     public List<String> getStatus() {
@@ -303,7 +327,7 @@ public class Entity extends BaseModel {
 
     /**
      * set status.
-     *
+     * 
      * @param status
      *            status.
      */
@@ -313,7 +337,7 @@ public class Entity extends BaseModel {
 
     /**
      * get port43.
-     *
+     * 
      * @return port43.
      */
     public String getPort43() {
@@ -322,7 +346,7 @@ public class Entity extends BaseModel {
 
     /**
      * set port43.
-     *
+     * 
      * @param port43
      *            port43.
      */
@@ -332,7 +356,7 @@ public class Entity extends BaseModel {
 
     /**
      * get networks.
-     *
+     * 
      * @return networks.
      */
     public List<Network> getNetworks() {
@@ -341,7 +365,7 @@ public class Entity extends BaseModel {
 
     /**
      * set networks.
-     *
+     * 
      * @param networks
      *            networks.
      */
@@ -351,7 +375,7 @@ public class Entity extends BaseModel {
 
     /**
      * get autnums.
-     *
+     * 
      * @return autnums.
      */
     public List<Autnum> getAutnums() {
@@ -360,7 +384,7 @@ public class Entity extends BaseModel {
 
     /**
      * set autnums.
-     *
+     * 
      * @param autnums
      *            autnums.
      */
@@ -370,7 +394,7 @@ public class Entity extends BaseModel {
 
     /**
      * get asEventActor.
-     *
+     * 
      * @return asEventActor.
      */
     public List<Event> getAsEventActor() {
@@ -379,7 +403,7 @@ public class Entity extends BaseModel {
 
     /**
      * set asEventActor.
-     *
+     * 
      * @param asEventActor
      *            asEventActor.
      */
@@ -389,7 +413,7 @@ public class Entity extends BaseModel {
 
     /**
      * get entities.
-     *
+     * 
      * @return entities.
      */
     public List<Entity> getEntities() {
@@ -398,7 +422,7 @@ public class Entity extends BaseModel {
 
     /**
      * set entities.
-     *
+     * 
      * @param entities
      *            entities.
      */
@@ -408,7 +432,7 @@ public class Entity extends BaseModel {
 
     /**
      * get addresses.
-     *
+     * 
      * @return addresses.
      */
     public List<EntityAddress> getAddresses() {
@@ -417,7 +441,7 @@ public class Entity extends BaseModel {
 
     /**
      * set addresses.
-     *
+     * 
      * @param addresses
      *            addresses.
      */
@@ -427,7 +451,7 @@ public class Entity extends BaseModel {
 
     /**
      * get kind.
-     *
+     * 
      * @return kind.
      */
     public String getKind() {
@@ -436,7 +460,7 @@ public class Entity extends BaseModel {
 
     /**
      * set kind.
-     *
+     * 
      * @param kind
      *            kind.
      */
@@ -446,7 +470,7 @@ public class Entity extends BaseModel {
 
     /**
      * get fn.
-     *
+     * 
      * @return fn.
      */
     public String getFn() {
@@ -455,7 +479,7 @@ public class Entity extends BaseModel {
 
     /**
      * set fn.
-     *
+     * 
      * @param fn
      *            fn.
      */
@@ -465,7 +489,7 @@ public class Entity extends BaseModel {
 
     /**
      * get email.
-     *
+     * 
      * @return email.
      */
     public String getEmail() {
@@ -474,7 +498,7 @@ public class Entity extends BaseModel {
 
     /**
      * set email.
-     *
+     * 
      * @param email
      *            email.
      */
@@ -484,7 +508,7 @@ public class Entity extends BaseModel {
 
     /**
      * get title.
-     *
+     * 
      * @return title.
      */
     public String getTitle() {
@@ -493,7 +517,7 @@ public class Entity extends BaseModel {
 
     /**
      * set title.
-     *
+     * 
      * @param title
      *            title.
      */
@@ -503,7 +527,7 @@ public class Entity extends BaseModel {
 
     /**
      * get org.
-     *
+     * 
      * @return org.
      */
     public String getOrg() {
@@ -512,7 +536,7 @@ public class Entity extends BaseModel {
 
     /**
      * set org.
-     *
+     * 
      * @param org
      *            org.
      */
@@ -522,7 +546,7 @@ public class Entity extends BaseModel {
 
     /**
      * get url.
-     *
+     * 
      * @return url.
      */
     public String getUrl() {
@@ -531,7 +555,7 @@ public class Entity extends BaseModel {
 
     /**
      * set url.
-     *
+     * 
      * @param url
      *            url.
      */
@@ -541,7 +565,7 @@ public class Entity extends BaseModel {
 
     /**
      * get telephones.
-     *
+     * 
      * @return telephones.
      */
     public List<EntityTel> getTelephones() {
@@ -550,12 +574,31 @@ public class Entity extends BaseModel {
 
     /**
      * set telephones.
-     *
+     * 
      * @param telephones
      *            telephones.
      */
     public void setTelephones(List<EntityTel> telephones) {
         this.telephones = telephones;
+    }
+
+    /**
+     * get resultsTruncated.
+     * 
+     * @return resultsTruncated.
+     */
+    public Boolean getResultsTruncated() {
+        return resultsTruncated;
+    }
+
+    /**
+     * set resultsTruncated.
+     * 
+     * @param resultsTruncated
+     *            resultsTruncated.
+     */
+    public void setResultsTruncated(Boolean resultsTruncated) {
+        this.resultsTruncated = resultsTruncated;
     }
 
 }

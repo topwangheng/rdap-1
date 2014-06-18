@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.PreparedStatementCreator;
@@ -49,8 +51,10 @@ import org.springframework.stereotype.Repository;
 
 import cn.cnnic.rdap.bean.Autnum;
 import cn.cnnic.rdap.bean.BaseModel;
-import cn.cnnic.rdap.bean.DomainQueryParam;
 import cn.cnnic.rdap.bean.Entity;
+import cn.cnnic.rdap.bean.EntityAddress;
+import cn.cnnic.rdap.bean.EntityQueryParam;
+import cn.cnnic.rdap.bean.EntityTel;
 import cn.cnnic.rdap.bean.Event;
 import cn.cnnic.rdap.bean.Link;
 import cn.cnnic.rdap.bean.ModelStatus;
@@ -60,18 +64,25 @@ import cn.cnnic.rdap.bean.PageBean;
 import cn.cnnic.rdap.bean.PublicId;
 import cn.cnnic.rdap.bean.QueryParam;
 import cn.cnnic.rdap.bean.Remark;
+import cn.cnnic.rdap.common.RdapProperties;
 import cn.cnnic.rdap.common.util.JcardUtil;
 import cn.cnnic.rdap.dao.AbstractQueryDao;
 import cn.cnnic.rdap.dao.QueryDao;
 
 /**
  * entity query DAO.
- *
+ * 
  * @author jiashuo
- *
+ * 
  */
 @Repository
 public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
+
+    /**
+     * logger.
+     */
+    private static final Logger LOGGER = LoggerFactory
+            .getLogger(EntityQueryDaoImpl.class);
 
     /**
      * publicId dao.
@@ -107,6 +118,16 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      */
     @Autowired
     private QueryDao<Network> networkQueryDao;
+    /**
+     * entityTelDao.
+     */
+    @Autowired
+    private EntityTelDao entityTelDao;
+    /**
+     * entityAddressDao.
+     */
+    @Autowired
+    private EntityAddressDao entityAddressDao;
 
     @Override
     public Entity query(QueryParam queryParam) {
@@ -114,19 +135,24 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
         if (null == entity) {
             return entity;
         }
-        queryAndSetInnerObjects(entity);
+        queryAndSetInnerObjectsWithoutEntities(entity);
+        queryAndSetInnerEntities(entity);
+        queryAndSetNetworksAndAs(entity);
         return entity;
     }
 
     @Override
     public List<Entity> queryAsInnerObjects(Long outerObjectId,
             ModelType outerModelType) {
+        LOGGER.debug("queryAsInnerObjects,outerObjectId:{},outerModelType:{}",
+                outerObjectId, outerModelType.getName());
         List<Entity> entities =
                 queryWithoutInnerObjects(outerObjectId, outerModelType);
+        LOGGER.debug("queryAsInnerObjects,results:{}", entities);
         if (null == entities) {
             return entities;
         }
-        queryAndSetInnerObjects(entities);
+        queryAndSetInnerObjectsWithoutEntities(entities);
         return entities;
     }
 
@@ -134,32 +160,61 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
     public List<Entity> search(QueryParam queryParam) {
         List<Entity> entities = searchWithoutInnerObjects(queryParam);
         queryAndSetEntityStatus(entities);
-        queryAndSetInnerObjects(entities);
+        queryAndSetInnerObjectsWithoutEntities(entities);
+        queryAndSetNetworksAndAs(entities);
         return entities;
     }
 
     @Override
     public Long searchCount(QueryParam queryParam) {
-        DomainQueryParam domainQueryParam = (DomainQueryParam) queryParam;
-        final String domainName = domainQueryParam.getQ();
-        final String punyName = domainQueryParam.getPunyName();
-        final String domainNameLikeClause =
-                super.generateLikeClause(domainName);
-        final String punyNameLikeClause = super.generateLikeClause(punyName);
+        EntityQueryParam entityQueryParam = (EntityQueryParam) queryParam;
+        final String q = entityQueryParam.getQ();
+        final String paramName = entityQueryParam.getSearchParamName();
+        final String qLikeClause = super.generateLikeClause(q);
         final String sql =
-                "select count(1) as COUNT from RDAP_DOMAIN domain "
-                        + " where LDH_NAME like ? or UNICODE_NAME like ? ";
+                "select count(1) as COUNT from RDAP_ENTITY "
+                        + " where " + paramName + " like ? ";
         Long entityCount = jdbcTemplate.query(new PreparedStatementCreator() {
             @Override
             public PreparedStatement createPreparedStatement(
                     Connection connection) throws SQLException {
                 PreparedStatement ps = connection.prepareStatement(sql);
-                ps.setString(1, punyNameLikeClause);
-                ps.setString(2, domainNameLikeClause);
+                ps.setString(1, qLikeClause);
                 return ps;
             }
         }, new CountResultSetExtractor());
         return entityCount;
+    }
+
+    /**
+     * query and set network and autnum.
+     * 
+     * @param entity
+     *            entity.
+     */
+    private void queryAndSetNetworksAndAs(Entity entity) {
+        List<Network> networks =
+                networkQueryDao.queryAsInnerObjects(entity.getId(),
+                        ModelType.ENTITY);
+        entity.setNetworks(networks);
+        List<Autnum> autnums =
+                autnumQueryDao.queryAsInnerObjects(entity.getId(),
+                        ModelType.ENTITY);
+        entity.setAutnums(autnums);
+        setTruncatedIfTooMuchResult(entity);
+    }
+    
+    /**
+     * query and set network and autnum.
+     * @param entities entities.
+     */
+    private void queryAndSetNetworksAndAs(List<Entity> entities) {
+        if (null == entities) {
+            return;
+        }
+        for (Entity entity : entities) {
+            queryAndSetNetworksAndAs(entity);
+        }
     }
 
     /**
@@ -168,12 +223,12 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      * @param entities
      *            entities.
      */
-    private void queryAndSetInnerObjects(List<Entity> entities) {
+    private void queryAndSetInnerObjectsWithoutEntities(List<Entity> entities) {
         if (null == entities) {
             return;
         }
         for (Entity entity : entities) {
-            queryAndSetInnerObjects(entity);
+            queryAndSetInnerObjectsWithoutEntities(entity);
         }
     }
 
@@ -184,28 +239,16 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      *            entity.
      */
     private void convertAndSetVcardArray(Entity entity) {
-        //
+        List<EntityTel> telephones = entityTelDao.query(entity);
+        entity.setTelephones(telephones);
+        List<EntityAddress> addresses = entityAddressDao.query(entity);
+        entity.setAddresses(addresses);
         entity.setVcardArray(JcardUtil.toJcardString(entity));
     }
 
     /**
-     * convert entities to vcard and set to entity.
-     * 
-     * @param entities
-     *            entities.
-     */
-    private void convertAndSetVcardArray(List<Entity> entities) {
-        if (null == entities) {
-            return;
-        }
-        for (Entity entity : entities) {
-            convertAndSetVcardArray(entity);
-        }
-    }
-
-    /**
      * query and set entity status.
-     *
+     * 
      * @param entities
      *            entity list.
      */
@@ -225,7 +268,7 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
 
     /**
      * query entity status.
-     *
+     * 
      * @param entityIds
      *            entity id list.
      * @return entity status list.
@@ -257,10 +300,12 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      * @param entity
      *            inner objects will be filled.
      */
-    private void queryAndSetInnerObjects(Entity entity) {
+    private void queryAndSetInnerObjectsWithoutEntities(Entity entity) {
         if (null == entity) {
             return;
         }
+        LOGGER.debug("queryAndSetInnerObjectsWithoutEntities,entityHandle:{}",
+                entity.getHandle());
         convertAndSetVcardArray(entity);
         queryAndSetStatus(entity);
         Long entityId = entity.getId();
@@ -274,20 +319,82 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
         List<Link> links =
                 linkQueryDao.queryAsInnerObjects(entityId, ModelType.ENTITY);
         entity.setLinks(links);
+        queryAndSetEvents(entity, entityId);
+    }
+
+    /**
+     * query and set events and asEventActor.
+     * 
+     * @param entity
+     *            entity.
+     * @param entityId
+     *            entityId.
+     */
+    private void queryAndSetEvents(Entity entity, Long entityId) {
         List<Event> events =
                 eventQueryDao.queryAsInnerObjects(entityId, ModelType.ENTITY);
         entity.setEvents(events);
-        List<Network> networks =
-                networkQueryDao.queryAsInnerObjects(entityId, ModelType.IP);
-        entity.setNetworks(networks);
-        List<Autnum> autnums =
-                autnumQueryDao.queryAsInnerObjects(entityId, ModelType.AUTNUM);
-        entity.setAutnums(autnums);
+        List<Event> eventsAsActor = new ArrayList<Event>();
+        List<Event> eventsNotAsActor = new ArrayList<Event>();
+        for (Event event : events) {
+            if (entity.getHandle().equals(event.getEventActor())) {
+                LOGGER.debug("asEventActor,entityId:{},eventId:{}", entityId,
+                        event.getId());
+                event.setEventActor(null);
+                eventsAsActor.add(event);
+            } else {
+                eventsNotAsActor.add(event);
+            }
+        }
+        entity.setEvents(eventsNotAsActor);
+        entity.setAsEventActor(eventsAsActor);
+    }
+
+    /**
+     * query and set entities.
+     * 
+     * @param entity
+     *            entity.
+     */
+    private void queryAndSetInnerEntities(Entity entity) {
+        LOGGER.debug("queryAndSetInnerEntities,entityHandle:{}",
+                entity.getHandle());
+        List<Entity> entities =
+                queryAsInnerObjects(entity.getId(), ModelType.ENTITY);
+        entity.setEntities(entities);
+    }
+
+    /**
+     * set truncated as true if inner networks or autnums is exceed max size.
+     * 
+     * @param entity
+     *            entity.
+     */
+    private void setTruncatedIfTooMuchResult(Entity entity) {
+        List<Network> networks = entity.getNetworks();
+        List<Autnum> autnums = entity.getAutnums();
+        int maxInnerObjSize = RdapProperties.getMaxsizeSearch().intValue();
+        if (null != networks && networks.size() > maxInnerObjSize) {
+            LOGGER.debug(
+                    "networks exceed max size:{},truncated.max size is {}",
+                    networks.size(), maxInnerObjSize);
+            List<Network> truncatedNetworks =
+                    networks.subList(0, maxInnerObjSize);
+            entity.setNetworks(truncatedNetworks);
+            entity.setResultsTruncated(true);
+        }
+        if (null != autnums && autnums.size() > maxInnerObjSize) {
+            LOGGER.debug("autnums exceed max size:{},truncated.max size is {}",
+                    autnums.size(), maxInnerObjSize);
+            List<Autnum> truncatedAutnums = autnums.subList(0, maxInnerObjSize);
+            entity.setAutnums(truncatedAutnums);
+            entity.setResultsTruncated(true);
+        }
     }
 
     /**
      * query entity, without inner objects.Role from REL_ENTITY_REGISTRATION,
-     * contain all role related to this entity.
+     * contain all role related is entity.
      * 
      * @param queryParam
      *            query parameter.
@@ -319,8 +426,7 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
     }
 
     /**
-     * query entity, without inner objects,for query as inner object. contain
-     * all role related to outer model.
+     * query entity, without inner objects,for query as inner object.
      * 
      * @param outerObjectId
      *            outerObjectId.
@@ -330,12 +436,7 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      */
     private List<Entity> queryWithoutInnerObjects(final Long outerObjectId,
             final ModelType outerModelType) {
-        final String sql =
-                "select * from RDAP_ENTITY entity "
-                        + " inner join REL_ENTITY_REGISTRATION rel "
-                        + " on entity.ENTITY_ID = rel.ENTITY_ID "
-                        + " where entity.ENTITY_ID= ? "
-                        + " and rel.REL_OBJECT_TYPE= ? ";
+        final String sql = generateSqlForQueryRelEntity(outerModelType);
         List<Entity> result =
                 jdbcTemplate.query(new PreparedStatementCreator() {
                     @Override
@@ -351,27 +452,37 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
     }
 
     /**
-     * entity ResultSetExtractor, extract data from ResultSet.
-     *
-     * @author jiashuo
-     *
+     * generate sql for query REL_ENTITY_REGISTRATION by REL_ID. Recode for
+     * rel.ENTITY_ID = rel.REL_ID and rel.REL_OBJECT_TYPE= 'entity' represents
+     * entity self relation,for store entity role such as 'registrar'.
+     * 
+     * @param outerModelType
+     *            outerModelType.
+     * @return sql.
      */
-    class EntityResultSetExtractor implements ResultSetExtractor<List<Entity>> {
-        @Override
-        public List<Entity> extractData(ResultSet rs) throws SQLException {
-            List<Entity> result = new ArrayList<Entity>();
-            while (rs.next()) {
-                Entity entity = new Entity();
-                extractEntityFromRs(rs, entity);
-                result.add(entity);
-            }
-            return result;
+    private String generateSqlForQueryRelEntity(ModelType outerModelType) {
+        final String sqlForNotEntityRel =
+                "select * from RDAP_ENTITY entity "
+                        + " inner join REL_ENTITY_REGISTRATION rel "
+                        + " on entity.ENTITY_ID = rel.ENTITY_ID "
+                        + " where rel.REL_ID= ? "
+                        + " and rel.REL_OBJECT_TYPE= ? ";
+        final String sqlForEntityRel =
+                "select * from RDAP_ENTITY entity "
+                        + " inner join REL_ENTITY_REGISTRATION rel "
+                        + " on entity.ENTITY_ID = rel.ENTITY_ID "
+                        + " where rel.REL_ID= ? "
+                        + " and rel.ENTITY_ID != rel.REL_ID "
+                        + " and rel.REL_OBJECT_TYPE= ? ";
+        if (ModelType.ENTITY.equals(outerModelType)) {
+            return sqlForEntityRel;
         }
+        return sqlForNotEntityRel;
     }
 
     /**
-     * extract entity from ResultSet.
-     *
+     * extract entity ResultSet.
+     * 
      * @param rs
      *            ResultSet.
      * @param entity
@@ -394,9 +505,9 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
 
     /**
      * entity ResultSetExtractor, extract data from ResultSet.
-     *
+     * 
      * @author jiashuo
-     *
+     * 
      */
     class EntityWithRoleResultSetExtractor implements
             ResultSetExtractor<List<Entity>> {
@@ -441,8 +552,8 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
      *            model list.
      */
     private void queryAndSetStatus(List<Entity> models) {
-        List<Long> domainIds = getModelIds(models);
-        List<ModelStatus> statusList = queryStatus(domainIds);
+        List<Long> entityIds = getModelIds(models);
+        List<ModelStatus> statusList = queryStatus(entityIds);
         for (ModelStatus status : statusList) {
             BaseModel obj =
                     BaseModel.findObjectFromListById(models, status.getId());
@@ -465,10 +576,10 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
         if (null == modelIds || modelIds.size() == 0) {
             return new ArrayList<ModelStatus>();
         }
-        final String modelIdsJoinedByComma = StringUtils.join(modelIds, ",");
+        final String idsJoinedByComma = StringUtils.join(modelIds, ",");
         final String sqlTpl =
                 "select * from RDAP_ENTITY_STATUS where ENTITY_ID in (%s)";
-        final String sql = String.format(sqlTpl, modelIdsJoinedByComma);
+        final String sql = String.format(sqlTpl, idsJoinedByComma);
         List<ModelStatus> result =
                 jdbcTemplate.query(sql, new RowMapper<ModelStatus>() {
                     @Override
@@ -485,7 +596,7 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
     /**
      * 
      * @author jiashuo
-     *
+     * 
      */
     class CountResultSetExtractor implements ResultSetExtractor<Long> {
         @Override
@@ -499,23 +610,23 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
     }
 
     /**
-     * search domain, without inner objects.
-     *
+     * search entity, without inner objects.
+     * 
      * @param params
      *            query parameter.
-     * @return domain list.
+     * @return entity list.
      */
     private List<Entity> searchWithoutInnerObjects(final QueryParam params) {
-        DomainQueryParam domainQueryParam = (DomainQueryParam) params;
-        final String domainName = domainQueryParam.getQ();
-        final String punyName = domainQueryParam.getPunyName();
-        final String domainNameLikeClause =
-                super.generateLikeClause(domainName);
-        final String punyNameLikeClause = super.generateLikeClause(punyName);
+        EntityQueryParam entityQueryParam = (EntityQueryParam) params;
+        final String q = entityQueryParam.getQ();
+        final String paramName = entityQueryParam.getSearchParamName();
+        final String qLikeClause = super.generateLikeClause(q);
         final String sql =
-                "select * from RDAP_DOMAIN domain "
-                        + " where LDH_NAME like ? or UNICODE_NAME like ? "
-                        + " order by domain.LDH_NAME limit ?,? ";
+                "select * from RDAP_ENTITY entity "
+                        + " left outer join REL_ENTITY_REGISTRATION rel "
+                        + " on entity.ENTITY_ID = rel.ENTITY_ID "
+                        + " where " + paramName + " like ? "
+                        + " order by entity.HANDLE limit ?,? ";
         final PageBean page = params.getPageBean();
         int startPage = page.getCurrentPage() - 1;
         startPage = startPage >= 0 ? startPage : 0;
@@ -526,13 +637,12 @@ public class EntityQueryDaoImpl extends AbstractQueryDao<Entity> {
                     public PreparedStatement createPreparedStatement(
                             Connection connection) throws SQLException {
                         PreparedStatement ps = connection.prepareStatement(sql);
-                        ps.setString(1, punyNameLikeClause);
-                        ps.setString(2, domainNameLikeClause);
-                        ps.setLong(3, startRow);
-                        ps.setLong(4, page.getMaxRecords());
+                        ps.setString(1, qLikeClause);
+                        ps.setLong(2, startRow);
+                        ps.setLong(3, page.getMaxRecords());
                         return ps;
                     }
-                }, new EntityResultSetExtractor());
+                }, new EntityWithRoleResultSetExtractor());
         return result;
     }
 }

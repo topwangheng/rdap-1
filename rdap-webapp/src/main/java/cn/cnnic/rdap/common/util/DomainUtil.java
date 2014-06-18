@@ -83,15 +83,15 @@ public final class DomainUtil {
     /**
      * arpa domain suffix.
      */
-    private static final String ARPA_SUFFIX = ".arpa";
+    public static final String ARPA_SUFFIX = ".arpa";
     /**
      * ipv4 arpa domain suffix.
      */
-    private static final String IPV4_ARPA_SUFFIX = "in-addr.arpa";
+    public static final String IPV4_ARPA_SUFFIX = "in-addr.arpa";
     /**
      * ipv6 arpa domain suffix.
      */
-    private static final String IPV6_ARPA_SUFFIX = "ip6.arpa";
+    public static final String IPV6_ARPA_SUFFIX = "ip6.arpa";
     /**
      * max ASCII code.
      */
@@ -166,7 +166,7 @@ public final class DomainUtil {
                 StringUtils.removeEndIgnoreCase(domainName, IPV6_ARPA_SUFFIX);
         // match
         // b.a.9.8.7.6.5.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.0.0.0.0.1.2.3.4.
-        String ipV6ArpaReg = "^([\\d|a|b|c|d|e|f]\\.){32}$";
+        String ipV6ArpaReg = "^([\\d|a|b|c|d|e|f]\\.){1,32}$";
         if (domainName.matches(ipV6ArpaReg)) {
             return true;
         }
@@ -182,6 +182,9 @@ public final class DomainUtil {
      */
     public static boolean validateDomainNameIsValidIdna(String domainName) {
         if (StringUtils.isBlank(domainName) || !domainName.contains(".")) {
+            return false;
+        }
+        if (domainName.contains(" ")) {
             return false;
         }
         if (!isArpaTldAndLabelIsValid(domainName)) {
@@ -207,11 +210,7 @@ public final class DomainUtil {
         if (domainName.equals(punyDomainName)
                 || domainNameWithoutLastPoint.equals(punyWithoutLastPoint)) {
             // all ASCII lable
-            if (isLdh(domainName)) {
-                return true;
-            } else {
-                return false;
-            }
+            return isLdh(domainName);
         }
         domainName = deleteLastPoint(domainName);
         if (StringUtils.isBlank(domainName) || !domainName.contains(".")) {
@@ -277,11 +276,14 @@ public final class DomainUtil {
      * @return domain puny name.
      */
     public static String geneDomainPunyName(String domainName) {
+        if(StringUtils.isBlank(domainName)){
+            return domainName;
+        }
         return IDN.toASCII(domainName); // long lable exception
     }
 
     /**
-     * decode and trim string,and replace ASCII char to lower case.
+     * decode,and replace ASCII char to lower case.
      * 
      * @param str
      *            string.
@@ -289,7 +291,7 @@ public final class DomainUtil {
      */
     public static String decodeAndTrimAndReplaceAsciiToLowercase(String str) {
         if (StringUtils.isBlank(str)) {
-            return StringUtils.trim(str);
+            return str;
         }
         str = urlDecode(str);
         str = StringUtils.trim(str);

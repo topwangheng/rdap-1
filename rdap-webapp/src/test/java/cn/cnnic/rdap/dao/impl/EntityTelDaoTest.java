@@ -28,19 +28,68 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package cn.cnnic.rdap.init;
+package cn.cnnic.rdap.dao.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.List;
+
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import cn.cnnic.rdap.BaseTest;
+import cn.cnnic.rdap.bean.Entity;
+import cn.cnnic.rdap.bean.EntityTel;
+
+import com.github.springtestdbunit.annotation.DatabaseSetup;
+import com.github.springtestdbunit.annotation.DatabaseTearDown;
 
 /**
- * test for Init.
+ * Test for entity DAO.
  *
  * @author jiashuo
  *
  */
-public class InitTest {
-//    @Test
-    public void testMain() {
-        Init.main(null);
+@SuppressWarnings("rawtypes")
+public class EntityTelDaoTest extends BaseTest {
+    /**
+     * entityTelDao.
+     */
+    @Autowired
+    private EntityTelDao entityTelDao;
+
+    /**
+     * test query exist.
+     */
+    @Test
+    @DatabaseTearDown("teardown.xml")
+    @DatabaseSetup("entityTel.xml")
+    public void testQueryExist() {
+        Entity entity = new Entity();
+        entity.setId(1L);
+        List<EntityTel> telephones = entityTelDao.query(entity);
+        assertNotNull(telephones);
+        assertEquals(telephones.size(), 2);
+        EntityTel tel = telephones.get(0);
+        assertEquals("home;voice", tel.getTypes());
+        assertEquals("+1-555-555-1234", tel.getGlobalNumber());
+        assertEquals("1234", tel.getExtNumber());
+        assertEquals(Integer.valueOf(1), tel.getPref());
+    }
+
+    /**
+     * test query non exist.
+     */
+    @Test
+    @DatabaseTearDown("teardown.xml")
+    @DatabaseSetup("entityTel.xml")
+    public void testQueryNotExist() {
+        Entity entity = new Entity();
+        entity.setId(100000L);
+        List<EntityTel> telephones = entityTelDao.query(entity);
+        assertNotNull(telephones);
+        assertEquals(telephones.size(), 0);
     }
 
 }
